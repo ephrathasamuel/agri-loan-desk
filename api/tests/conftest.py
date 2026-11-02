@@ -7,7 +7,10 @@ import pytest
 
 # Settings are read when the app is imported, so set them first.
 _tmp = tempfile.mkdtemp(prefix="agri-loan-test-")
-os.environ["DATABASE_URL"] = "sqlite:///" + os.path.join(_tmp, "test.db").replace("\\", "/")
+# TEST_DATABASE_URL runs the suite against PostgreSQL (as CI does); default is a fresh SQLite file.
+os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL") or (
+    "sqlite:///" + os.path.join(_tmp, "test.db").replace("\\", "/")
+)
 os.environ["SECRET_KEY"] = "test-secret-key-not-for-production"
 os.environ["ADMIN_EMAIL"] = "admin@example.com"
 os.environ["ADMIN_PASSWORD"] = "admin-password-123"

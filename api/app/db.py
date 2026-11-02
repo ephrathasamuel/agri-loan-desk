@@ -7,7 +7,7 @@ only DATABASE_URL changes.
 import os
 from datetime import datetime, timezone
 
-from sqlalchemy import (JSON, Float, ForeignKey, Integer, LargeBinary, String, Text,
+from sqlalchemy import (JSON, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Text,
                         create_engine)
 from sqlalchemy.orm import (DeclarativeBase, Mapped, mapped_column, relationship,
                             sessionmaker)
@@ -33,7 +33,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(20), default="officer")  # "admin" or "officer"
     # Raised on password change so older session tokens stop working.
     session_version: Mapped[int] = mapped_column(Integer, default=1)
-    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class Assessment(Base):
@@ -41,7 +41,7 @@ class Assessment(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    created_at: Mapped[datetime] = mapped_column(default=utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
     farmer_name: Mapped[str] = mapped_column(String(120))
     farmer_ref: Mapped[str | None] = mapped_column(String(60), nullable=True)
     crop: Mapped[str] = mapped_column(String(20))
@@ -58,7 +58,7 @@ class Assessment(Base):
     summary_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     summary_language: Mapped[str | None] = mapped_column(String(20), nullable=True)
     summary_model: Mapped[str | None] = mapped_column(String(60), nullable=True)
-    summary_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    summary_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_by: Mapped[User] = relationship()
 
@@ -75,7 +75,7 @@ class ClimateCell(Base):
     start: Mapped[str] = mapped_column(String(10))
     end: Mapped[str] = mapped_column(String(10))
     payload: Mapped[bytes] = mapped_column(LargeBinary)
-    fetched_at: Mapped[datetime] = mapped_column(default=utcnow)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 def make_engine(url):
