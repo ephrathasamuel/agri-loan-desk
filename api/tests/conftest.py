@@ -14,6 +14,7 @@ os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL") or (
 os.environ["SECRET_KEY"] = "test-secret-key-not-for-production"
 os.environ["ADMIN_EMAIL"] = "admin@example.com"
 os.environ["ADMIN_PASSWORD"] = "admin-password-123"
+os.environ["ADMIN_NAME"] = "Administrator"
 os.environ["ANTHROPIC_API_KEY"] = ""
 
 

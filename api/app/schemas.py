@@ -1,9 +1,9 @@
 """Typed request and response models (they also drive the OpenAPI docs)."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 CropKey = Literal["wheat", "teff", "maize", "sorghum", "barley"]
 SoilKey = Literal["sand", "sandy_loam", "loam", "clay_loam", "clay"]
@@ -24,6 +24,11 @@ class UserOut(BaseModel):
     name: str
     role: Literal["admin", "officer"]
     created_at: datetime
+
+    @field_validator("created_at")
+    @classmethod
+    def as_utc(cls, v):
+        return v.replace(tzinfo=timezone.utc) if v.tzinfo is None else v
 
 
 class LoginOut(BaseModel):

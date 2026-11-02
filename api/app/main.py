@@ -157,9 +157,14 @@ def create_user(body: schemas.UserCreate, _: User = Depends(admin_user), db: Ses
 
 # ---- assessments ------------------------------------------------------------
 
+def _utc(dt):
+    # SQLite gives back naive datetimes; they were stored as UTC.
+    return dt.replace(tzinfo=timezone.utc) if dt is not None and dt.tzinfo is None else dt
+
+
 def _summary_row(a: Assessment):
     return {
-        "id": a.id, "created_at": a.created_at, "created_by": a.created_by.name,
+        "id": a.id, "created_at": _utc(a.created_at), "created_by": a.created_by.name,
         "farmer_name": a.farmer_name, "farmer_ref": a.farmer_ref, "crop": a.crop,
         "area_ha": a.area_ha, "loan_amount_etb": a.loan_amount_etb,
         "risk_rating": a.risk_rating, "verdict": a.verdict,
@@ -170,7 +175,7 @@ def _full_row(a: Assessment):
     return {
         **_summary_row(a), "lat": a.lat, "lon": a.lon, "boundary": a.boundary, "inputs": a.inputs,
         "result": a.result, "summary_text": a.summary_text, "summary_language": a.summary_language,
-        "summary_model": a.summary_model, "summary_at": a.summary_at,
+        "summary_model": a.summary_model, "summary_at": _utc(a.summary_at),
     }
 
 
