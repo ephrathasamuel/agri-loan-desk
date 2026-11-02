@@ -58,6 +58,10 @@ body {
   .table td {
     @apply border-b border-line px-2 py-2 align-top;
   }
+  /* Keep amounts like "ETB 45,000" on one line. */
+  .table td.text-right {
+    @apply whitespace-nowrap;
+  }
 }
 
 /* Keep Leaflet's panes and controls under the sticky page header. */
