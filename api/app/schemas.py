@@ -45,8 +45,7 @@ class UserCreate(BaseModel):
 
 
 class DemoOut(BaseModel):
-    email: str
-    password: str
+    enabled: bool
 
 
 class PasswordChange(BaseModel):

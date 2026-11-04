@@ -4,6 +4,7 @@ Interactive docs: /docs (Swagger UI) and /redoc.
 """
 
 import logging
+import secrets
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
@@ -26,9 +27,13 @@ from .summary import SummaryError, summarise
 
 log = logging.getLogger("agri_loan_desk")
 
-# Public on purpose: shown on the login page when DEMO_ACCOUNT is on.
+# The shared demo account (DEMO_ACCOUNT=true). It has no usable password: visitors
+# enter it with the "Try the demo" button, which calls POST /auth/demo.
 DEMO_EMAIL = "demo@agri-loan-desk.app"
-DEMO_PASSWORD = "try-the-desk"
+
+
+def is_demo(user: User) -> bool:
+    return user.email == DEMO_EMAIL
 
 
 def seed_admin(db: Session):
@@ -45,18 +50,17 @@ def seed_admin(db: Session):
 
 
 def seed_demo(db: Session):
-    """Create the shared demo account, or restore it, when DEMO_ACCOUNT is on. It is an
-    admin so visitors see every feature; it cannot change its own password."""
+    """Create the shared demo account when DEMO_ACCOUNT is on. It has the admin pages so
+    visitors see every feature, but it only ever sees and changes its own data."""
     if not get_settings().demo_account:
         return
     user = db.scalar(select(User).where(User.email == DEMO_EMAIL))
     if user is None:
-        db.add(User(email=DEMO_EMAIL, name="Demo Account", role="admin",
-                    password_hash=hash_password(DEMO_PASSWORD)))
-    else:
-        user.role = "admin"
-        if not verify_password(DEMO_PASSWORD, user.password_hash):
-            user.password_hash = hash_password(DEMO_PASSWORD)
+        user = User(email=DEMO_EMAIL, name="Demo Account", role="admin", password_hash="")
+        db.add(user)
+    user.role = "admin"
+    # A fresh random password nobody knows: password sign-in to the demo never works.
+    user.password_hash = hash_password(secrets.token_urlsafe(32))
     db.commit()
 
 
@@ -144,10 +148,18 @@ def login(body: schemas.LoginIn, db: Session = Depends(get_db)):
 
 
 @app.get("/auth/demo", response_model=schemas.DemoOut, tags=["auth"])
-def demo_account():
-    if not get_settings().demo_account:
+def demo_status():
+    return {"enabled": get_settings().demo_account}
+
+
+@app.post("/auth/demo", response_model=schemas.LoginOut, tags=["auth"])
+def demo_login(db: Session = Depends(get_db)):
+    user = db.scalar(select(User).where(User.email == DEMO_EMAIL)) if get_settings().demo_account else None
+    if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "There is no demo account.")
-    return {"email": DEMO_EMAIL, "password": DEMO_PASSWORD}
+    s = get_settings()
+    return {"token": make_token(user.id, user.session_version, s.secret_key, s.session_hours),
+            "expires_in_seconds": s.session_hours * 3600, "user": user}
 
 
 @app.get("/auth/me", response_model=schemas.UserOut, tags=["auth"])
@@ -158,8 +170,8 @@ def me(user: User = Depends(current_user)):
 @app.post("/auth/password", status_code=204, tags=["auth"])
 def change_password(body: schemas.PasswordChange, user: User = Depends(current_user),
                     db: Session = Depends(get_db)):
-    if user.email == DEMO_EMAIL:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "The demo account's password cannot be changed.")
+    if is_demo(user):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "The demo account has no password to change.")
     if not verify_password(body.current_password, user.password_hash):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "The current password is wrong.")
     user.password_hash = hash_password(body.new_password)
@@ -170,12 +182,16 @@ def change_password(body: schemas.PasswordChange, user: User = Depends(current_u
 # ---- users (admin) ----------------------------------------------------------
 
 @app.get("/users", response_model=list[schemas.UserOut], tags=["users"])
-def list_users(_: User = Depends(admin_user), db: Session = Depends(get_db)):
+def list_users(user: User = Depends(admin_user), db: Session = Depends(get_db)):
+    if is_demo(user):
+        return [user]  # the demo never sees real accounts
     return db.scalars(select(User).order_by(User.created_at)).all()
 
 
 @app.post("/users", response_model=schemas.UserOut, status_code=201, tags=["users"])
-def create_user(body: schemas.UserCreate, _: User = Depends(admin_user), db: Session = Depends(get_db)):
+def create_user(body: schemas.UserCreate, admin: User = Depends(admin_user), db: Session = Depends(get_db)):
+    if is_demo(admin):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Adding officers is turned off in the demo.")
     email = str(body.email).strip().lower()
     if db.scalar(select(User).where(User.email == email)):
         raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists.")
@@ -209,10 +225,14 @@ def _full_row(a: Assessment):
     }
 
 
+def sees_all(user: User) -> bool:
+    return user.role == "admin" and not is_demo(user)
+
+
 def _visible(db: Session, user: User, assessment_id: int) -> Assessment:
     a = db.get(Assessment, assessment_id)
-    # Officers see their own assessments; admins see all. A hidden one looks missing.
-    if a is None or (user.role != "admin" and a.created_by_id != user.id):
+    # Officers (and the demo) see their own assessments; admins see all. A hidden one looks missing.
+    if a is None or (not sees_all(user) and a.created_by_id != user.id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Assessment not found.")
     return a
 
@@ -266,7 +286,7 @@ def create_assessment(body: schemas.AssessmentIn, user: User = Depends(current_u
 def list_assessments(user: User = Depends(current_user), db: Session = Depends(get_db),
                      limit: int = 100):
     q = select(Assessment).order_by(Assessment.created_at.desc(), Assessment.id.desc()).limit(min(max(limit, 1), 500))
-    if user.role != "admin":
+    if not sees_all(user):
         q = q.where(Assessment.created_by_id == user.id)
     return [_summary_row(a) for a in db.scalars(q).all()]
 

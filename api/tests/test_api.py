@@ -159,19 +159,34 @@ def test_password_change_signs_out_old_sessions(client):
     assert login(client, "temp@example.com", "temp-password-2")
 
 
+
 def test_no_demo_account_unless_switched_on(client):
-    assert client.get("/auth/demo").status_code == 404
+    assert client.get("/auth/demo").json() == {"enabled": False}
+    assert client.post("/auth/demo").status_code == 404
 
 
-def test_demo_account(client, monkeypatch):
+def test_demo_account_is_walled_off(client, admin, officer, monkeypatch):
+    client.post("/assessments", headers=officer, json=NEW)  # someone else's data
     monkeypatch.setattr(main.get_settings(), "demo_account", True)
     with main.SessionLocal() as db:
         main.seed_demo(db)
         main.seed_demo(db)  # running again on the next start-up is harmless
-    creds = client.get("/auth/demo").json()
-    headers = login(client, creds["email"], creds["password"])
-    assert client.get("/auth/me", headers=headers).json()["role"] == "admin"
-    assert client.get("/users", headers=headers).status_code == 200
-    res = client.post("/auth/password", headers=headers, json={
-        "current_password": creds["password"], "new_password": "taken-over-123"})
-    assert res.status_code == 403
+    assert client.get("/auth/demo").json() == {"enabled": True}
+    headers = {"Authorization": f"Bearer {client.post('/auth/demo').json()['token']}"}
+
+    me = client.get("/auth/me", headers=headers).json()
+    assert me["role"] == "admin"
+    # No password sign-in, and nothing to change.
+    assert client.post("/auth/login", json={"email": me["email"], "password": ""}).status_code == 422
+    assert client.post("/auth/password", headers=headers, json={
+        "current_password": "x", "new_password": "taken-over-123"}).status_code == 403
+    # Sees only itself and its own assessments; cannot add accounts.
+    assert [u["email"] for u in client.get("/users", headers=headers).json()] == [me["email"]]
+    assert client.get("/assessments", headers=headers).json() == []
+    others = client.get("/assessments", headers=admin).json()
+    assert others and client.get(f"/assessments/{others[0]['id']}", headers=headers).status_code == 404
+    assert client.post("/users", headers=headers, json={
+        "email": "new@example.com", "name": "New", "password": "long-enough-1"}).status_code == 403
+    created = client.post("/assessments", headers=headers, json=NEW)
+    assert created.status_code == 201
+    assert len(client.get("/assessments", headers=headers).json()) == 1

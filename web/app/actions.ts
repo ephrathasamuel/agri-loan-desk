@@ -17,16 +17,9 @@ const num = (f: FormData, k: string) => {
   return v === "" ? null : Number(v);
 };
 
-export async function signIn(_prev: FormState, form: FormData): Promise<FormState> {
-  let session: { token: string; expires_in_seconds: number };
-  try {
-    session = await api("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email: str(form, "email"), password: String(form.get("password") ?? "") }),
-    }, { auth: false });
-  } catch (e) {
-    return { error: e instanceof ApiError ? e.message : "Sign-in failed." };
-  }
+type Session = { token: string; expires_in_seconds: number };
+
+async function startSession(session: Session): Promise<never> {
   (await cookies()).set(SESSION_COOKIE, session.token, {
     httpOnly: true,
     sameSite: "lax",
@@ -35,6 +28,30 @@ export async function signIn(_prev: FormState, form: FormData): Promise<FormStat
     maxAge: session.expires_in_seconds,
   });
   redirect("/assessments");
+}
+
+export async function signIn(_prev: FormState, form: FormData): Promise<FormState> {
+  let session: Session;
+  try {
+    session = await api("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email: str(form, "email"), password: String(form.get("password") ?? "") }),
+    }, { auth: false });
+  } catch (e) {
+    return { error: e instanceof ApiError ? e.message : "Sign-in failed." };
+  }
+  return startSession(session);
+}
+
+// The shared demo account has no password; the API hands out a session when the demo is on.
+export async function demoSignIn(): Promise<FormState> {
+  let session: Session;
+  try {
+    session = await api("/auth/demo", { method: "POST" }, { auth: false });
+  } catch (e) {
+    return { error: e instanceof ApiError ? e.message : "The demo is not available right now." };
+  }
+  return startSession(session);
 }
 
 export async function signOut() {

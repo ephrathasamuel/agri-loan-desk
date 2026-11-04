@@ -17,9 +17,9 @@ async function ExpiredNotice({ searchParams }: { searchParams: PageProps<"/login
 
 // Shown only when the API has DEMO_ACCOUNT on. A sleeping or unreachable API just hides it.
 async function DemoAccount() {
-  const demo = await api<{ email: string; password: string }>(
+  const demo = await api<{ enabled: boolean }>(
     "/auth/demo", { signal: AbortSignal.timeout(10_000) }, { auth: false }).catch(() => null);
-  return demo ? <DemoSignIn email={demo.email} password={demo.password} /> : null;
+  return demo?.enabled ? <DemoSignIn /> : null;
 }
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
