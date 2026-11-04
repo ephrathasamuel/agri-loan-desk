@@ -180,7 +180,7 @@ cd web && npm run build && npm run test:e2e   # starts the API and web app; need
 | Web app | **Vercel** (Next.js) | Root directory `web` |
 
 1. **Database:** on **Neon**, create a project (region near the API, e.g. Frankfurt) and copy the connection string from *Connect*. Or on **Supabase**, *Connect → Session pooler* and copy the URI, replacing `[YOUR-PASSWORD]`. The app accepts either address as shown (`postgresql://…`, including `?sslmode=require`); tables are created on first start.
-2. **Render:** *New → Blueprint*, pick this repository. Render reads `render.yaml`, generates `SECRET_KEY`, and asks for `DATABASE_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` and the optional `ANTHROPIC_API_KEY`. When it is live, open `https://<service>.onrender.com/health`.
+2. **Render:** *New → Blueprint*, pick this repository. Render reads `render.yaml`, generates `SECRET_KEY`, and asks for `DATABASE_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` and the optional `ANTHROPIC_API_KEY`. It also sets `DEMO_ACCOUNT=true`, which creates a shared demo officer (`demo@agri-loan-desk.app` / `try-the-desk`) and shows it on the login page; remove the variable to turn it off. When it is live, open `https://<service>.onrender.com/health`.
 3. **Vercel:** *Add New → Project*, import this repository, set **Root Directory** to `web`, and add the environment variable `API_URL` = the Render address (no trailing slash). Deploy.
 4. **Keep the API awake (optional):** in GitHub, *Settings → Secrets and variables → Actions → Variables*, add `API_HEALTH_URL` = `https://<service>.onrender.com/health`. The `keep-warm` workflow then pings it every 14 minutes.
 

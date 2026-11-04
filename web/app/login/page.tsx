@@ -1,4 +1,6 @@
 import { Suspense } from "react";
+import { api } from "@/lib/api";
+import DemoSignIn from "./DemoSignIn";
 import LoginForm from "./LoginForm";
 
 export const metadata = { title: "Sign in · Agri-Loan Climate Risk Desk" };
@@ -11,6 +13,13 @@ async function ExpiredNotice({ searchParams }: { searchParams: PageProps<"/login
       Your session ended. Please sign in again.
     </p>
   );
+}
+
+// Shown only when the API has DEMO_ACCOUNT on. A sleeping or unreachable API just hides it.
+async function DemoAccount() {
+  const demo = await api<{ email: string; password: string }>(
+    "/auth/demo", { signal: AbortSignal.timeout(10_000) }, { auth: false }).catch(() => null);
+  return demo ? <DemoSignIn email={demo.email} password={demo.password} /> : null;
 }
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
@@ -28,6 +37,9 @@ export default function LoginPage({ searchParams }: PageProps<"/login">) {
           <ExpiredNotice searchParams={searchParams} />
         </Suspense>
         <LoginForm />
+        <Suspense fallback={null}>
+          <DemoAccount />
+        </Suspense>
       </div>
     </main>
   );

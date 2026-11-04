@@ -26,6 +26,10 @@ from .summary import SummaryError, summarise
 
 log = logging.getLogger("agri_loan_desk")
 
+# Public on purpose: shown on the login page when DEMO_ACCOUNT is on.
+DEMO_EMAIL = "demo@agri-loan-desk.app"
+DEMO_PASSWORD = "try-the-desk"
+
 
 def seed_admin(db: Session):
     """Create the first admin from ADMIN_EMAIL / ADMIN_PASSWORD if none exists."""
@@ -40,11 +44,25 @@ def seed_admin(db: Session):
     log.info("Created the first admin account from ADMIN_EMAIL.")
 
 
+def seed_demo(db: Session):
+    """Create the shared demo officer, or reset its password, when DEMO_ACCOUNT is on."""
+    if not get_settings().demo_account:
+        return
+    user = db.scalar(select(User).where(User.email == DEMO_EMAIL))
+    if user is None:
+        db.add(User(email=DEMO_EMAIL, name="Demo Officer", role="officer",
+                    password_hash=hash_password(DEMO_PASSWORD)))
+    elif not verify_password(DEMO_PASSWORD, user.password_hash):
+        user.password_hash = hash_password(DEMO_PASSWORD)
+    db.commit()
+
+
 @asynccontextmanager
 async def lifespan(app):
     Base.metadata.create_all(engine)
     with SessionLocal() as db:
         seed_admin(db)
+        seed_demo(db)
     yield
 
 
@@ -122,6 +140,13 @@ def login(body: schemas.LoginIn, db: Session = Depends(get_db)):
             "expires_in_seconds": s.session_hours * 3600, "user": user}
 
 
+@app.get("/auth/demo", response_model=schemas.DemoOut, tags=["auth"])
+def demo_account():
+    if not get_settings().demo_account:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "There is no demo account.")
+    return {"email": DEMO_EMAIL, "password": DEMO_PASSWORD}
+
+
 @app.get("/auth/me", response_model=schemas.UserOut, tags=["auth"])
 def me(user: User = Depends(current_user)):
     return user
@@ -130,6 +155,8 @@ def me(user: User = Depends(current_user)):
 @app.post("/auth/password", status_code=204, tags=["auth"])
 def change_password(body: schemas.PasswordChange, user: User = Depends(current_user),
                     db: Session = Depends(get_db)):
+    if user.email == DEMO_EMAIL:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "The demo account's password cannot be changed.")
     if not verify_password(body.current_password, user.password_hash):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "The current password is wrong.")
     user.password_hash = hash_password(body.new_password)

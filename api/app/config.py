@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     admin_password: str = ""
     admin_name: str = "Administrator"
     anthropic_api_key: str = ""
+    # Creates a shared officer account whose sign-in details are shown on the
+    # login page, so visitors can try the desk. Off unless set.
+    demo_account: bool = False
 
 
 @lru_cache

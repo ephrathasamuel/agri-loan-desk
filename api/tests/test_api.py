@@ -157,3 +157,21 @@ def test_password_change_signs_out_old_sessions(client):
     assert res.status_code == 204
     assert client.get("/auth/me", headers=old).status_code == 401
     assert login(client, "temp@example.com", "temp-password-2")
+
+
+def test_no_demo_account_unless_switched_on(client):
+    assert client.get("/auth/demo").status_code == 404
+
+
+def test_demo_account(client, monkeypatch):
+    monkeypatch.setattr(main.get_settings(), "demo_account", True)
+    with main.SessionLocal() as db:
+        main.seed_demo(db)
+        main.seed_demo(db)  # running again on the next start-up is harmless
+    creds = client.get("/auth/demo").json()
+    headers = login(client, creds["email"], creds["password"])
+    assert client.get("/auth/me", headers=headers).json()["role"] == "officer"
+    assert client.get("/users", headers=headers).status_code == 403
+    res = client.post("/auth/password", headers=headers, json={
+        "current_password": creds["password"], "new_password": "taken-over-123"})
+    assert res.status_code == 403

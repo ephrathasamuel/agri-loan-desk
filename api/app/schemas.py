@@ -44,6 +44,11 @@ class UserCreate(BaseModel):
     role: Literal["admin", "officer"] = "officer"
 
 
+class DemoOut(BaseModel):
+    email: str
+    password: str
+
+
 class PasswordChange(BaseModel):
     current_password: str = Field(min_length=1, max_length=200)
     new_password: str = Field(min_length=10, max_length=200)

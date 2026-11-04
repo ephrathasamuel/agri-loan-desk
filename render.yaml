@@ -22,6 +22,9 @@ services:
         sync: false
       - key: ADMIN_NAME
         value: Desk Admin
+      # Shared demo officer account shown on the login page, for visitors.
+      - key: DEMO_ACCOUNT
+        value: "true"
       # Optional: turns on the AI briefing note.
       - key: ANTHROPIC_API_KEY
         sync: false
