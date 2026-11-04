@@ -175,11 +175,11 @@ cd web && npm run build && npm run test:e2e   # starts the API and web app; need
 
 | Part | Host | Notes |
 |---|---|---|
-| Database | **Supabase** (PostgreSQL) | New project; copy the **Session pooler** connection string (port 5432, works over IPv4) |
+| Database | **Neon** or **Supabase** (PostgreSQL) | Neon: free with no expiry, copy the connection string. Supabase: use the **Session pooler** string (port 5432, IPv4) |
 | Risk API | **Render** (Docker, from `render.yaml`) | Free plan sleeps after 15 minutes idle |
 | Web app | **Vercel** (Next.js) | Root directory `web` |
 
-1. **Supabase:** create a project, then *Connect → Session pooler* and copy the URI. Replace `[YOUR-PASSWORD]` with the database password. The app accepts the address as shown (`postgresql://…`); tables are created on first start.
+1. **Database:** on **Neon**, create a project (region near the API, e.g. Frankfurt) and copy the connection string from *Connect*. Or on **Supabase**, *Connect → Session pooler* and copy the URI, replacing `[YOUR-PASSWORD]`. The app accepts either address as shown (`postgresql://…`, including `?sslmode=require`); tables are created on first start.
 2. **Render:** *New → Blueprint*, pick this repository. Render reads `render.yaml`, generates `SECRET_KEY`, and asks for `DATABASE_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` and the optional `ANTHROPIC_API_KEY`. When it is live, open `https://<service>.onrender.com/health`.
 3. **Vercel:** *Add New → Project*, import this repository, set **Root Directory** to `web`, and add the environment variable `API_URL` = the Render address (no trailing slash). Deploy.
 4. **Keep the API awake (optional):** in GitHub, *Settings → Secrets and variables → Actions → Variables*, add `API_HEALTH_URL` = `https://<service>.onrender.com/health`. The `keep-warm` workflow then pings it every 14 minutes.

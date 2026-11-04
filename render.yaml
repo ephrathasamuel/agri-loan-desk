@@ -1,5 +1,5 @@
 # Render blueprint for the risk API (FastAPI). The web app is deployed on Vercel and the
-# database lives on Supabase; see "Deploy" in README.md.
+# database lives on Neon or Supabase; see "Deploy" in README.md.
 services:
   - type: web
     name: agri-loan-desk-api
@@ -11,7 +11,7 @@ services:
     healthCheckPath: /health
     autoDeploy: true
     envVars:
-      # Supabase connection string (Session pooler, port 5432). Pasted as shown by Supabase.
+      # PostgreSQL connection string from Neon or Supabase (Session pooler), pasted as shown.
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY
