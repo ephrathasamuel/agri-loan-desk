@@ -170,8 +170,8 @@ def test_demo_account(client, monkeypatch):
         main.seed_demo(db)  # running again on the next start-up is harmless
     creds = client.get("/auth/demo").json()
     headers = login(client, creds["email"], creds["password"])
-    assert client.get("/auth/me", headers=headers).json()["role"] == "officer"
-    assert client.get("/users", headers=headers).status_code == 403
+    assert client.get("/auth/me", headers=headers).json()["role"] == "admin"
+    assert client.get("/users", headers=headers).status_code == 200
     res = client.post("/auth/password", headers=headers, json={
         "current_password": creds["password"], "new_password": "taken-over-123"})
     assert res.status_code == 403

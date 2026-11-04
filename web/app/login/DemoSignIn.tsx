@@ -10,7 +10,7 @@ export default function DemoSignIn({ email, password }: { email: string; passwor
       <div>
         <p className="text-sm font-semibold">Just looking around?</p>
         <p className="mt-1 text-sm text-muted">
-          Use the shared demo officer account. Anyone can see what is saved in it.
+          Use the shared demo account. It has every feature, including the admin pages, and anyone can see what is saved in it.
         </p>
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">

@@ -45,15 +45,18 @@ def seed_admin(db: Session):
 
 
 def seed_demo(db: Session):
-    """Create the shared demo officer, or reset its password, when DEMO_ACCOUNT is on."""
+    """Create the shared demo account, or restore it, when DEMO_ACCOUNT is on. It is an
+    admin so visitors see every feature; it cannot change its own password."""
     if not get_settings().demo_account:
         return
     user = db.scalar(select(User).where(User.email == DEMO_EMAIL))
     if user is None:
-        db.add(User(email=DEMO_EMAIL, name="Demo Officer", role="officer",
+        db.add(User(email=DEMO_EMAIL, name="Demo Account", role="admin",
                     password_hash=hash_password(DEMO_PASSWORD)))
-    elif not verify_password(DEMO_PASSWORD, user.password_hash):
-        user.password_hash = hash_password(DEMO_PASSWORD)
+    else:
+        user.role = "admin"
+        if not verify_password(DEMO_PASSWORD, user.password_hash):
+            user.password_hash = hash_password(DEMO_PASSWORD)
     db.commit()
 
 
