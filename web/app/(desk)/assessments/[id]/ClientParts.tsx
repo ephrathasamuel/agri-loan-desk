@@ -14,7 +14,7 @@ export function SummaryForm({ id, aiAvailable, hasNote }: { id: number; aiAvaila
   if (!aiAvailable) {
     return (
       <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-muted" data-testid="ai-off">
-        AI briefing notes are off: the API has no ANTHROPIC_API_KEY. Everything above is calculated without AI.
+        AI writing is switched off on this deployment (no ANTHROPIC_API_KEY). Everything else on this page is calculated without AI.
       </p>
     );
   }

@@ -57,6 +57,7 @@ test("draw a field, assess the loan and see it in the history", async ({ page })
   await expect(page.getByText("(measured from boundary)")).toBeVisible();
   await expect(page.getByTestId("basis-risk")).toContainText("would have paid in");
   await expect(page.getByTestId("ai-off")).toBeVisible();
+  await expect(page.getByTestId("concept-note")).toContainText("Questions to ask the farmer:");
   await expect(page.locator(".recharts-surface").first()).toBeVisible();
 
   await page.getByRole("link", { name: "← All assessments" }).click();

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PayoutChart, SeasonRainChart, YieldLossChart } from "@/components/Charts";
 import { ApiError, getAssessment, getReference } from "@/lib/api";
+import { conceptNote } from "@/lib/conceptNote";
 import { day, etb, mm, pct, riskClass, verdictClass, when } from "@/lib/format";
 import type { Assessment } from "@/lib/types";
 import { ResultMap, SummaryForm } from "./ClientParts";
@@ -220,6 +221,18 @@ export default async function AssessmentPage({ params }: PageProps<"/assessments
             <div className="whitespace-pre-wrap text-sm leading-6">{a.summary_text}</div>
             <p className="mt-3 text-xs text-muted">
               {a.summary_language} · {a.summary_model} · {a.summary_at ? when(a.summary_at) : ""}
+            </p>
+          </div>
+        ) : !aiAvailable ? (
+          <div className="rounded-lg border border-dashed border-slate-300 p-4" data-testid="concept-note">
+            <p className="mb-3 inline-block rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200">
+              Concept preview
+            </p>
+            <div className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{conceptNote(a)}</div>
+            <p className="mt-3 text-xs text-muted">
+              This shows the shape of the note. On this demo it is filled in from a fixed template with this
+              assessment&apos;s numbers, not written by AI. With an Anthropic API key, Claude writes it in English or
+              Amharic, explaining the numbers in plain language without changing them.
             </p>
           </div>
         ) : null}
