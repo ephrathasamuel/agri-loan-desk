@@ -1,0 +1,27 @@
+# Render blueprint for the risk API (FastAPI). The web app is deployed on Vercel and the
+# database lives on Supabase; see "Deploy" in README.md.
+services:
+  - type: web
+    name: agri-loan-desk-api
+    runtime: docker
+    rootDir: api
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Supabase connection string (Session pooler, port 5432). Pasted as shown by Supabase.
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_NAME
+        value: Desk Admin
+      # Optional: turns on the AI briefing note.
+      - key: ANTHROPIC_API_KEY
+        sync: false

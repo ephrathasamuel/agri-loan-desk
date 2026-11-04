@@ -154,7 +154,7 @@ cd api && python -m pytest          # risk maths, climate client, geometry, API,
 cd web && npm run build && npm run test:e2e   # starts the API and web app; needs internet for NASA POWER
 ```
 
-- **API tests (pytest), 58 in total:**
+- **API tests (pytest), 62 in total:**
   - FAO-56 worked examples: saturation vapour pressure, Example 8 (Ra), Example 18 (daily ET₀).
   - Water balance and FAO-33 yield response.
   - Percentile, payout and premium maths, and basis-risk flags.
@@ -168,6 +168,23 @@ cd web && npm run build && npm run test:e2e   # starts the API and web app; need
   - An admin adds an officer, who sees only their own assessments.
   - The results page has no sideways scroll on a phone.
 - **CI** runs the API tests on SQLite and on a PostgreSQL service, then lint, build and the end-to-end tests, and builds both Docker images on Linux.
+
+---
+
+## Deploy (free tiers)
+
+| Part | Host | Notes |
+|---|---|---|
+| Database | **Supabase** (PostgreSQL) | New project; copy the **Session pooler** connection string (port 5432, works over IPv4) |
+| Risk API | **Render** (Docker, from `render.yaml`) | Free plan sleeps after 15 minutes idle |
+| Web app | **Vercel** (Next.js) | Root directory `web` |
+
+1. **Supabase:** create a project, then *Connect → Session pooler* and copy the URI. Replace `[YOUR-PASSWORD]` with the database password. The app accepts the address as shown (`postgresql://…`); tables are created on first start.
+2. **Render:** *New → Blueprint*, pick this repository. Render reads `render.yaml`, generates `SECRET_KEY`, and asks for `DATABASE_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` and the optional `ANTHROPIC_API_KEY`. When it is live, open `https://<service>.onrender.com/health`.
+3. **Vercel:** *Add New → Project*, import this repository, set **Root Directory** to `web`, and add the environment variable `API_URL` = the Render address (no trailing slash). Deploy.
+4. **Keep the API awake (optional):** in GitHub, *Settings → Secrets and variables → Actions → Variables*, add `API_HEALTH_URL` = `https://<service>.onrender.com/health`. The `keep-warm` workflow then pings it every 14 minutes.
+
+The browser never calls the API: Next.js server code calls it with `API_URL`, so no CORS setup is needed.
 
 ---
 
