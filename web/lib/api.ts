@@ -27,7 +27,10 @@ function messageFrom(body: unknown, status: number): string {
         .join(" ");
     }
   }
-  return status >= 500 ? "The risk service is unavailable. Try again shortly." : `Request failed (${status}).`;
+  // 502/503 also happen while a free hosted API wakes from sleep, which takes about a minute.
+  return status >= 500
+    ? "The risk service is starting up or busy. Wait a minute and try again."
+    : `Request failed (${status}).`;
 }
 
 export async function api<T>(path: string, init: RequestInit = {}, opts: { auth?: boolean } = {}): Promise<T> {
@@ -43,7 +46,7 @@ export async function api<T>(path: string, init: RequestInit = {}, opts: { auth?
   try {
     res = await fetch(`${API_URL}${path}`, { ...init, headers, cache: "no-store" });
   } catch {
-    throw new ApiError(503, "The risk service cannot be reached. Is the API running?");
+    throw new ApiError(503, "The risk service cannot be reached right now. It may be starting up; wait a minute and try again.");
   }
   if (res.status === 401 && opts.auth !== false) redirect("/login?expired=1");
   if (res.status === 204) return undefined as T;
