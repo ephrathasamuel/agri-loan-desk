@@ -78,13 +78,24 @@ class ClimateCell(Base):
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+def normalise_url(url):
+    """Accept the address hosts like Supabase or Render show ("postgres://" or "postgresql://")
+    and point SQLAlchemy at the psycopg 3 driver this project installs."""
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url.removeprefix(prefix)
+    return url
+
+
 def make_engine(url):
+    url = normalise_url(url)
     if url.startswith("sqlite:///"):
         path = url.removeprefix("sqlite:///")
         if path and path != ":memory:":
             os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
         return create_engine(url, connect_args={"check_same_thread": False})
-    return create_engine(url, pool_pre_ping=True)
+    # Hosted databases close idle connections; recycle before they do.
+    return create_engine(url, pool_pre_ping=True, pool_recycle=300)
 
 
 engine = make_engine(get_settings().database_url)
