@@ -26,7 +26,7 @@ test("draw a field, assess the loan and see it in the history", async ({ page })
   await page.getByRole("link", { name: "New", exact: true }).click();
 
   // Go to a field near Bishoftu and click four corners of a small plot.
-  await page.getByLabel("Go to coordinates").fill("8.7512, 38.9801");
+  await page.getByLabel("Find a place").fill("8.7512, 38.9801");
   await page.getByRole("button", { name: "Go", exact: true }).click();
   const map = page.getByTestId("field-map");
   await expect(map).toBeVisible();

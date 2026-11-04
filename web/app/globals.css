@@ -70,3 +70,9 @@ body {
 .leaflet-bottom {
   z-index: 10 !important;
 }
+
+
+/* Drawing a field: an aiming cursor. */
+.field-map.leaflet-container {
+  cursor: crosshair;
+}

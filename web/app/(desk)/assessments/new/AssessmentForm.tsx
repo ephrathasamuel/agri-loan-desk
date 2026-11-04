@@ -11,7 +11,7 @@ import type { Reference } from "@/lib/types";
 // Leaflet needs the browser, so the map only renders on the client.
 const FieldMap = dynamic(() => import("@/components/FieldMap"), {
   ssr: false,
-  loading: () => <div className="h-[340px] animate-pulse rounded-lg bg-slate-100 sm:h-[420px]" />,
+  loading: () => <div className="h-[380px] animate-pulse rounded-lg bg-slate-100 sm:h-[460px]" />,
 });
 
 export default function AssessmentForm({ reference }: { reference: Reference }) {
