@@ -50,7 +50,7 @@ export default function AssessmentForm({ reference }: { reference: Reference }) 
         </div>
         <p className="text-sm text-muted">
           {mode === "boundary"
-            ? "Zoom in on the satellite view and click each corner of the farmer's field. The area is measured from the shape, and rainfall is averaged over every NASA POWER grid cell the field touches."
+            ? "Zoom in on the satellite view and click each corner of the farmer's field. The area is measured from the shape. Rainfall comes from the ERA5 cell (about 28 km) under the field; temperature, wind and sunshine are averaged over every NASA POWER cell the field touches."
             : "Click the field's location, then enter the farm size below."}
         </p>
         <FieldMap mode={mode} onChange={setField} />

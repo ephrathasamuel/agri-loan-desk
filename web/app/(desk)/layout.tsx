@@ -41,7 +41,7 @@ export default function DeskLayout({ children }: LayoutProps<"/">) {
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
       <footer className="border-t border-line py-4 text-center text-xs text-muted">
-        Prototype decision-support tool. Weather history: NASA POWER. Method: FAO-56 and FAO-33.
+        Prototype decision-support tool. Weather history: ECMWF ERA5 (rainfall) and NASA POWER. Method: FAO-56 and FAO-33.
       </footer>
     </>
   );

@@ -101,7 +101,7 @@ export default async function AssessmentPage({ params }: PageProps<"/assessments
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
-        <Section title="Field and data" intro="The field as drawn, and the NASA POWER grid cells its daily weather history comes from.">
+        <Section title="Field and data" intro="The field as drawn, and the weather grid cells its daily history comes from: ERA5 for rainfall, NASA POWER for temperature, wind and sunshine.">
           <ResultMap lat={field.lat} lon={field.lon} boundary={a.boundary} cells={climate.cells} />
           <p className="text-xs text-muted">
             {climate.source}. {climate.years} complete seasons, {climate.first_year}–{climate.last_year}

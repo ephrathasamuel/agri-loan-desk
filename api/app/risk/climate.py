@@ -1,9 +1,14 @@
-"""Daily weather history from NASA POWER, turned into rainfall and ET0 series.
+"""Daily weather history, turned into rainfall and ET0 series.
 
 NASA POWER serves daily data on a grid (MERRA-2, 0.5 deg latitude x 0.625 deg
-longitude for rainfall and temperature). Any point inside a grid cell gets the
-same values, so data is requested and cached per cell. A field drawn as a
-polygon is averaged over every cell it touches.
+longitude). Its temperature, humidity, wind and solar radiation drive ET0, and
+it is requested and cached per cell; a field drawn as a polygon is averaged
+over every cell it touches.
+
+Rainfall comes from the ECMWF ERA5 reanalysis through the Open-Meteo archive
+(0.25 deg, about 28 km): each cell covers about a fifth of the area of a POWER
+cell, so local dry spells are smoothed less. If ERA5 cannot be reached, POWER
+rainfall is used instead.
 """
 
 from datetime import date, timedelta
@@ -19,6 +24,10 @@ HISTORY_START = date(1984, 1, 1)
 LAT_STEP, LON_STEP = 0.5, 0.625
 TIMEOUT = 120
 FILL = -999.0
+
+
+ERA5_URL = "https://archive-api.open-meteo.com/v1/archive"
+ERA5_STEP = 0.25
 
 
 class ClimateError(Exception):
@@ -108,3 +117,38 @@ def average_daily(dailies):
         }
         for d in common
     }
+
+
+def era5_cell_for(lat, lon):
+    """Centre of the 0.25 deg ERA5 cell containing a point."""
+    return round(round(lat / ERA5_STEP) * ERA5_STEP, 2), round(round(lon / ERA5_STEP) * ERA5_STEP, 2)
+
+
+def fetch_rain_era5(lat, lon, start, end, session=requests):
+    """Daily rainfall (mm) from ERA5 for one 0.25 deg cell: {"YYYY-MM-DD": mm}."""
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "start_date": start.isoformat(),
+        "end_date": end.isoformat(),
+        "daily": "precipitation_sum",
+        "models": "era5",
+        "timezone": "UTC",
+    }
+    try:
+        res = session.get(ERA5_URL, params=params, timeout=TIMEOUT)
+        data = res.json()
+    except (requests.RequestException, ValueError) as exc:
+        raise ClimateError("Could not reach the ERA5 rainfall archive.") from exc
+    if res.status_code != 200:
+        raise ClimateError(f"The ERA5 archive returned an error (HTTP {res.status_code}).")
+    try:
+        days, rain = data["daily"]["time"], data["daily"]["precipitation_sum"]
+    except (KeyError, TypeError) as exc:
+        raise ClimateError("The ERA5 archive returned data in an unexpected format.") from exc
+    return {d: max(float(r), 0.0) for d, r in zip(days, rain) if r is not None}
+
+
+def with_rain(daily, rain):
+    """Replace the rainfall in a daily series with another source, on the days both have."""
+    return {d: {**v, "rain": rain[d.isoformat()]} for d, v in daily.items() if d.isoformat() in rain}

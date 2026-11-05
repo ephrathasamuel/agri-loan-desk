@@ -27,6 +27,11 @@ def fake_climate(monkeypatch):
         return synthetic_daily(), [(8.5, 38.75)]
 
     monkeypatch.setattr(main, "field_daily", fake_field_daily)
+
+    def no_era5(db, lat, lon, today=None, fetch=None):
+        raise main.ClimateError("offline in tests")
+
+    monkeypatch.setattr(main, "field_rain", no_era5)
     return calls
 
 

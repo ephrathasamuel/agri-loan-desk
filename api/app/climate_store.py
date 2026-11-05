@@ -37,3 +37,18 @@ def field_daily(db: Session, points, today=None, fetch=climate.fetch_cell):
     cells = climate.cells_for_points(points)
     dailies = [climate.to_daily(cell_history(db, lat, lon, today, fetch)) for lat, lon in cells]
     return climate.average_daily(dailies), cells
+
+
+def field_rain(db: Session, lat, lon, today=None, fetch=climate.fetch_rain_era5):
+    """ERA5 daily rainfall for the 0.25 deg cell under the field centre, cached like POWER cells."""
+    end = history_end(today)
+    clat, clon = climate.era5_cell_for(lat, lon)
+    key = f"era5:{clat:.2f}:{clon:.2f}:{HISTORY_START.isoformat()}:{end.isoformat()}"
+    row = db.get(ClimateCell, key)
+    if row is None:
+        rain = fetch(clat, clon, HISTORY_START, end)
+        db.merge(ClimateCell(key=key, lat=clat, lon=clon, elevation=0.0, start=HISTORY_START.isoformat(),
+                             end=end.isoformat(), payload=zlib.compress(json.dumps(rain).encode())))
+        db.commit()
+        return rain
+    return json.loads(zlib.decompress(row.payload))

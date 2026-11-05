@@ -86,3 +86,44 @@ def test_average_daily_uses_common_days():
 
 def test_history_end_is_last_complete_year():
     assert climate.history_end(date(2026, 11, 2)) == date(2025, 12, 31)
+
+
+
+class Era5Res:
+    def __init__(self, status, data):
+        self.status_code, self._data = status, data
+
+    def json(self):
+        return self._data
+
+
+class Era5Session:
+    def __init__(self, res):
+        self.res, self.params = res, None
+
+    def get(self, url, params=None, timeout=None):
+        self.params = params
+        return self.res
+
+
+def test_era5_rain_is_parsed_and_clipped():
+    from datetime import date
+    s = Era5Session(Era5Res(200, {"daily": {"time": ["2020-07-01", "2020-07-02", "2020-07-03"],
+                                            "precipitation_sum": [12.5, None, -0.1]}}))
+    rain = climate.fetch_rain_era5(9.0, 38.7, date(2020, 7, 1), date(2020, 7, 3), session=s)
+    assert rain == {"2020-07-01": 12.5, "2020-07-03": 0.0}
+    assert s.params["models"] == "era5"
+
+
+def test_era5_error_raises_climate_error():
+    from datetime import date
+    with pytest.raises(climate.ClimateError):
+        climate.fetch_rain_era5(9.0, 38.7, date(2020, 7, 1), date(2020, 7, 3), session=Era5Session(Era5Res(500, {})))
+
+
+def test_era5_cell_and_rain_override():
+    from datetime import date
+    assert climate.era5_cell_for(8.7512, 38.9801) == (8.75, 39.0)
+    daily = {date(2020, 7, 1): {"rain": 3.0, "et0": 4.0}, date(2020, 7, 2): {"rain": 1.0, "et0": 4.1}}
+    out = climate.with_rain(daily, {"2020-07-01": 9.0})
+    assert out == {date(2020, 7, 1): {"rain": 9.0, "et0": 4.0}}

@@ -13,11 +13,11 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from . import schemas
-from .climate_store import field_daily
+from .climate_store import field_daily, field_rain
 from .config import get_settings
 from .db import Assessment, Base, SessionLocal, User, engine, get_db
 from .risk import assumptions as A
-from .risk.climate import ClimateError
+from .risk.climate import ClimateError, with_rain
 from .risk.crops import CROPS, SOILS, season_length
 from .risk.engine import AssessmentError, assess
 from .risk.geo import GeoError, field_from_geojson
@@ -253,6 +253,10 @@ def create_assessment(body: schemas.AssessmentIn, user: User = Depends(current_u
 
     try:
         daily, cells = field_daily(db, points)
+        try:  # sharper rainfall where available; POWER rainfall otherwise
+            daily, rain_source = with_rain(daily, field_rain(db, lat, lon)), "ECMWF ERA5 (0.25°, about 28 km)"
+        except ClimateError:
+            rain_source = "NASA POWER MERRA-2 (ERA5 was unavailable)"
         inputs = {**body.model_dump(exclude={"boundary", "lat", "lon", "area_ha"}), "area_ha": area}
         result = assess(inputs, daily)
     except ClimateError as exc:
@@ -263,8 +267,8 @@ def create_assessment(body: schemas.AssessmentIn, user: User = Depends(current_u
     result["field"] = {"lat": round(lat, 6), "lon": round(lon, 6), "area_ha": round(area, 3),
                        "area_source": area_source}
     result["climate"]["source"] = (
-        "NASA POWER daily (MERRA-2 rainfall; ET0 by FAO-56 Penman-Monteith from POWER "
-        "temperature, humidity, wind and solar radiation)"
+        f"Daily rainfall: {rain_source}. ET0 by FAO-56 Penman-Monteith from NASA POWER "
+        "temperature, humidity, wind and solar radiation."
     )
     result["climate"]["cells"] = [list(c) for c in cells]
     result = schemas.AssessmentResult.model_validate(result).model_dump()
