@@ -10,28 +10,29 @@ An AI briefing note (Claude) can then explain the result to the officer in Engli
 
 It is built with **Next.js (React) + FastAPI (Python) + PostgreSQL/SQLite**, with sign-in for loan officers, saved assessment history, GIS field boundaries, Docker, and CI. It is a working prototype, not a credit model trained on repayment data (see [Limitations](#limitations)).
 
+## Try it live
+
+**[agri-loan-desk.vercel.app](https://agri-loan-desk.vercel.app)**: press **Try the demo** on the sign-in page. The demo account has every feature and is walled off from real accounts. API docs: [agri-loan-desk-api.onrender.com/docs](https://agri-loan-desk-api.onrender.com/docs). The API runs on a free plan, so the very first request after a quiet spell can take about a minute.
+
 <p>
-  <img src="docs/screenshot-result.png" alt="Assessment result: climate risk, loan structure, insurance backtest and field map for a wheat field near Bishoftu" width="70%" />
-  <img src="docs/screenshot-mobile.png" alt="The same result on a phone" width="22%" />
+  <img src="docs/screenshot-result.png" alt="Assessment result: risk, loan capacity, insurance premium and repayment date for a wheat field near Bishoftu" width="74%" />
+  <img src="docs/screenshot-mobile.png" alt="The same result on a phone" width="21%" />
 </p>
 <p>
-  <img src="docs/screenshot-new.png" alt="New assessment: drawing the field boundary on the satellite map" width="49%" />
+  <img src="docs/screenshot-new.png" alt="New assessment: the field boundary drawn on the satellite map" width="49%" />
   <img src="docs/screenshot-list.png" alt="Saved assessments" width="49%" />
 </p>
 
 ---
 
-## Quick start (Docker)
+## Run it yourself (Docker)
 
 ```bash
 cp .env.example .env     # fill in SECRET_KEY, ADMIN_EMAIL, ADMIN_PASSWORD, POSTGRES_PASSWORD
 docker compose up --build
 ```
 
-| URL | What |
-|---|---|
-| http://localhost:3000 | The desk. Sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD` |
-| http://localhost:8000/docs | Interactive API docs (OpenAPI / Swagger) |
+Then open port 3000 for the desk (sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`) and port 8000 `/docs` for the API docs.
 
 Compose runs three Linux containers: **PostgreSQL 17**, the **FastAPI** risk engine and the **Next.js** server. The first admin account is created from the environment on first start; add loan officers from the **Officers** page.
 
@@ -49,16 +50,16 @@ uvicorn app.main:app --port 8000
 # Web: Node 24, in a second terminal
 cd web
 npm install
-npm run dev                            # http://localhost:3000 (API_URL defaults to http://127.0.0.1:8000)
+npm run dev                            # port 3000; API_URL defaults to the API on port 8000
 ```
 
-The weather data (NASA POWER) is free and needs no key. `ANTHROPIC_API_KEY` is optional: without it everything works except the AI briefing note, and the page says why.
+The weather data (ERA5 through Open-Meteo, and NASA POWER) is free and needs no key. `ANTHROPIC_API_KEY` is optional: without it everything works except the AI briefing note, and the page says why.
 
 ---
 
 ## What the officer sees
 
-- **Field and data:** the field on satellite imagery, plus the NASA POWER grid cells its weather history came from.
+- **Field and data:** the field on satellite imagery, plus the weather grid cells its history came from.
 - **Headline numbers:** share of bad seasons, maximum loan in a 1-in-5 bad year against the amount requested, drought cover premium, repayment date.
 - **Loan structure:** a timeline (loan paid out, planting, expected harvest, repayment due), interest, harvest value in a bad and a median year, and a verdict: *Within capacity*, *Repayable in a normal year only* or *Above capacity*.
 - **Climate risk:** charts of season rainfall and estimated yield loss for every season since 1984, with dry seasons and bad seasons marked.
@@ -73,9 +74,9 @@ The weather data (NASA POWER) is free and needs no key. `ANTHROPIC_API_KEY` is o
 
 The engine is in [`api/app/risk/`](api/app/risk). Every agronomic value carries the number of the FAO table it comes from.
 
-**1. Weather history (NASA POWER).** The API downloads daily rainfall, temperature, humidity, wind and solar radiation from the [NASA POWER](https://power.larc.nasa.gov/) daily API for 1984 to the last complete year. That is 42 seasons, starting in 1984 because POWER's solar radiation starts mid-1983. Rainfall is POWER's `PRECTOTCORR` (MERRA-2 based). POWER serves data on a 0.5° × 0.625° grid, so each grid cell is downloaded once and cached in the database. **If the drawn field touches more than one grid cell, the daily series are averaged across them.**
+**1. Weather history (ERA5 rainfall + NASA POWER).** Daily **rainfall** comes from the ECMWF **ERA5** reanalysis through the free [Open-Meteo archive](https://open-meteo.com/en/docs/historical-weather-api), on a 0.25° grid (about 28 km). Each ERA5 cell covers about a fifth of the area of a NASA POWER cell, so local dry spells are smoothed less. Daily **temperature, humidity, wind and solar radiation** come from the [NASA POWER](https://power.larc.nasa.gov/) API on its 0.5° × 0.625° grid; if the drawn field touches more than one POWER cell, they are averaged. The history runs from 1984 (POWER's solar radiation starts mid-1983) to the last complete year: 42 seasons. Every grid cell is downloaded once and cached in the database. If ERA5 cannot be reached, the desk falls back to POWER rainfall (`PRECTOTCORR`, MERRA-2) and says so on the result.
 
-> CHIRPS (0.05°) would give finer rainfall. It needs bulk raster downloads rather than a point API, so it is listed as the next step under [Limitations](#limitations).
+> CHIRPS (0.05°) would be finer still. It needs bulk raster downloads rather than a point API, so it remains a next step under [Limitations](#limitations).
 
 **2. Reference evapotranspiration.** ET₀ is computed for every day with the **FAO-56 Penman-Monteith** equation ([`et0.py`](api/app/risk/et0.py)), and is tested against FAO-56 Example 18.
 
@@ -125,7 +126,8 @@ flowchart LR
   B[Browser<br/>React, Leaflet, Recharts] -->|forms, server actions| W[Next.js 16 server<br/>App Router, httpOnly session cookie]
   W -->|REST + Bearer token| A[FastAPI risk engine<br/>typed Pydantic models, OpenAPI]
   A --> D[(PostgreSQL / SQLite<br/>SQLAlchemy 2)]
-  A -->|daily history, cached per grid cell| N[NASA POWER API]
+  A -->|temperature, wind, sun; cached per cell| N[NASA POWER API]
+  A -->|daily rainfall; cached per cell| E[Open-Meteo ERA5 archive]
   A -->|briefing note, optional| C[Claude API]
 ```
 
@@ -191,7 +193,7 @@ The browser never calls the API: Next.js server code calls it with `API_URL`, so
 ## Limitations
 
 - **No repayment data.** The desk estimates *climate* risk from weather and an agronomic model. It does not know the farmer's credit history, other income or management, and the money figures depend on the assumptions above. It supports an officer's judgement; it does not replace a credit model.
-- **Coarse rainfall.** NASA POWER rainfall is a ~50 km grid average, which smooths local storms and dry spells. CHIRPS or station data would sharpen field-level risk.
+- **Rainfall is still a grid average.** Rainfall now comes from ERA5 (about 28 km, five times finer in area than the NASA POWER grid used before), but it is still a reanalysis average. CHIRPS (about 5 km) or local station records would sharpen field-level risk further.
 - **Simplified agronomy.** A single-layer bucket model with fixed soil and crop values, no fertility, pests or late-season heat stress, and an assumed soil state before planting. Teff and barley Ky values are assumptions.
 - **Insurance design is illustrative.** Linear payout on one cumulative rainfall index, priced on burning cost. A real product would use dekadal (10-day) phases, a reinsurer's loading and regulatory approval.
 - **Future seasons are assumed to look like the past 42.** No climate-change trend is applied.
