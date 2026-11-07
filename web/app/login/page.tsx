@@ -16,10 +16,13 @@ async function ExpiredNotice({ searchParams }: { searchParams: PageProps<"/login
 }
 
 // Shown only when the API has DEMO_ACCOUNT on. A sleeping or unreachable API just hides it.
+// The box is hidden only when the API says the demo is off. If the API is still waking up
+// (about half a minute on a free plan), the box is shown and the button waits for it.
 async function DemoAccount() {
   const demo = await api<{ enabled: boolean }>(
     "/auth/demo", { signal: AbortSignal.timeout(10_000) }, { auth: false }).catch(() => null);
-  return demo?.enabled ? <DemoSignIn /> : null;
+  if (demo && !demo.enabled) return null;
+  return <DemoSignIn waking={!demo} />;
 }
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
