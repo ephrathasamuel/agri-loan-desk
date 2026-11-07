@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { demoSignIn, type FormState } from "../actions";
 
-export default function DemoSignIn() {
+export default function DemoSignIn({ waking = false }: { waking?: boolean }) {
   const [state, action, pending] = useActionState<FormState>(demoSignIn, {});
   return (
     <form action={action} className="card mt-4 space-y-3">
@@ -15,8 +15,11 @@ export default function DemoSignIn() {
       </div>
       {state.error ? <p role="alert" className="text-sm text-red-700">{state.error}</p> : null}
       <button type="submit" className="btn-secondary w-full" disabled={pending}>
-        {pending ? "Opening…" : "Try the demo"}
+        {pending ? "Opening… this can take up to a minute" : "Try the demo"}
       </button>
+      {waking && !pending ? (
+        <p className="text-xs text-muted">The demo server is waking up, so the first sign-in can take up to a minute.</p>
+      ) : null}
     </form>
   );
 }
