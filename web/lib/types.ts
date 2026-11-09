@@ -42,10 +42,30 @@ export interface Season {
   etm_mm: number;
   eta_mm: number;
   stress_days: number;
+  heat_days?: number;
+  water_yield_loss?: number | null;
+  heat_yield_loss?: number;
   relative_yield: number;
   yield_loss: number;
   dry: boolean;
   rain_share_of_median: number | null;
+}
+
+export interface Trend {
+  per_decade: number;
+  p_value: number;
+  significant: boolean;
+}
+
+export interface ClimateTrend {
+  rain_mm: Trend;
+  yield_loss: Trend;
+  recent_from_year: number;
+  recent_bad_season_share: number | null;
+  earlier_bad_season_share: number | null;
+  recent_mean_rain_mm: number | null;
+  earlier_mean_rain_mm: number | null;
+  significance_level: number;
 }
 
 export interface InsuranceYear {
@@ -58,7 +78,7 @@ export interface InsuranceYear {
 }
 
 export interface AssessmentResult {
-  crop: { key: string; name: string; season_days: number; ky: number; notes: string[] };
+  crop: { key: string; name: string; season_days: number; ky: number; heat_tmax_c?: number | null; notes: string[] };
   soil: { key: string; name: string };
   field: { lat: number; lon: number; area_ha: number; area_source: "boundary" | "entered" };
   climate: {
@@ -78,6 +98,10 @@ export interface AssessmentResult {
     bad_season_share: number;
     bad_loss_threshold: number;
     risk_rating: RiskRating;
+    // Missing on assessments saved before heat stress and trends were added.
+    heat_seasons?: number | null;
+    mean_heat_yield_loss?: number | null;
+    trend?: ClimateTrend | null;
     seasons: Season[];
   };
   loan: {

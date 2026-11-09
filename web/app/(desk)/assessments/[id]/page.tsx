@@ -4,7 +4,7 @@ import { PayoutChart, SeasonRainChart, YieldLossChart } from "@/components/Chart
 import { ApiError, getAssessment, getReference } from "@/lib/api";
 import { conceptNote } from "@/lib/conceptNote";
 import { day, etb, mm, pct, riskClass, verdictClass, when } from "@/lib/format";
-import type { Assessment } from "@/lib/types";
+import type { Assessment, ClimateTrend } from "@/lib/types";
 import { ResultMap, SummaryForm } from "./ClientParts";
 
 export async function generateMetadata({ params }: PageProps<"/assessments/[id]">) {
@@ -31,6 +31,29 @@ function Section({ title, intro, children, id }: { title: string; intro?: string
       </div>
       {children}
     </section>
+  );
+}
+
+function TrendPanel({ trend, years }: { trend: ClimateTrend; years: number }) {
+  const sign = (v: number, digits = 0) => `${v > 0 ? "+" : ""}${v.toFixed(digits)}`;
+  const verdict = (t: ClimateTrend["rain_mm"]) =>
+    t.significant ? "a clear trend" : `no clear trend (p = ${t.p_value.toFixed(2)})`;
+  return (
+    <div className="rounded-lg bg-brand-50 px-3 py-2 text-sm" data-testid="trend-panel">
+      <div className="stat-label">Is the climate here changing?</div>
+      <ul className="mt-1 space-y-1">
+        <li>Season rain: {sign(trend.rain_mm.per_decade)} mm a decade, {verdict(trend.rain_mm)}.</li>
+        <li>Yield loss: {sign(trend.yield_loss.per_decade * 100, 1)} points a decade, {verdict(trend.yield_loss)}.</li>
+        {trend.recent_bad_season_share !== null && trend.earlier_bad_season_share !== null ? (
+          <li>
+            Bad seasons since {trend.recent_from_year}: {pct(trend.recent_bad_season_share)}, against {pct(trend.earlier_bad_season_share)} before.
+          </li>
+        ) : null}
+      </ul>
+      <p className="mt-1 text-xs text-muted">
+        Theil–Sen slope and Mann–Kendall test over {years} seasons. The risk rating, loan capacity and premium still weigh every season equally.
+      </p>
+    </div>
   );
 }
 
@@ -155,13 +178,20 @@ export default async function AssessmentPage({ params }: PageProps<"/assessments
             <SeasonRainChart seasons={climate.seasons} median={climate.median_season_rain_mm} dryLimit={climate.dry_limit_mm} />
           </div>
           <div>
-            <h3 className="mb-1 text-sm font-semibold">Estimated yield loss from water stress</h3>
+            <h3 className="mb-1 text-sm font-semibold">Estimated yield loss from water and heat stress</h3>
             <div className="mb-1 flex gap-3 text-xs text-muted">
               <Swatch colour="#dc2626" label={`bad season (≥ ${pct(climate.bad_loss_threshold)})`} />
             </div>
             <YieldLossChart seasons={climate.seasons} badThreshold={climate.bad_loss_threshold} />
           </div>
         </div>
+        {climate.heat_seasons != null && crop.heat_tmax_c != null ? (
+          <p className="text-xs text-muted" data-testid="heat-note">
+            Heat around flowering (daily maximum above {crop.heat_tmax_c} °C) cut the yield in {climate.heat_seasons} of {climate.years} seasons
+            {climate.heat_seasons > 0 ? `, ${pct(climate.mean_heat_yield_loss ?? 0, 1)} a season on average` : ""}.
+          </p>
+        ) : null}
+        {climate.trend ? <TrendPanel trend={climate.trend} years={climate.years} /> : null}
         {crop.notes.map((n) => <p key={n} className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">{n}</p>)}
       </Section>
 

@@ -50,14 +50,21 @@ export function SeasonRainChart({ seasons, median, dryLimit }: {
 }
 
 export function YieldLossChart({ seasons, badThreshold }: { seasons: Season[]; badThreshold: number }) {
-  const data = seasons.map((s) => ({ year: s.year, loss: +(s.yield_loss * 100).toFixed(1) }));
+  const data = seasons.map((s) => ({
+    year: s.year, loss: +(s.yield_loss * 100).toFixed(1), heat: +((s.heat_yield_loss ?? 0) * 100).toFixed(1),
+  }));
   return (
-    <Frame label="Estimated yield loss from water stress by year">
+    <Frame label="Estimated yield loss from water and heat stress by year">
       <BarChart data={data} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
         <XAxis dataKey="year" tick={axis} interval="preserveStartEnd" minTickGap={14} />
         <YAxis tick={axis} width={42} unit="%" domain={[0, (max: number) => Math.max(30, Math.ceil(max / 10) * 10)]} />
-        <Tooltip formatter={(v) => [`${v}%`, "Yield loss"]} labelFormatter={(y) => `Season ${y}`} />
+        <Tooltip
+          formatter={(v, _n, item) => [
+            item.payload.heat > 0 ? `${v}% (heat ${item.payload.heat}%)` : `${v}%`, "Yield loss",
+          ]}
+          labelFormatter={(y) => `Season ${y}`}
+        />
         <ReferenceLine y={badThreshold * 100} stroke={C.loss} strokeDasharray="5 4"
           label={{ value: "bad season", position: "insideTopRight", fontSize: 11, fill: C.loss }} />
         <Bar dataKey="loss" isAnimationActive={false}>
