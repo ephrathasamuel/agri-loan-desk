@@ -86,7 +86,7 @@ def fetch_cell(lat, lon, start, end, session=requests):
 
 
 def to_daily(cell):
-    """date -> {"rain", "et0"} for one cell. Days with missing values are
+    """date -> {"rain", "et0", "tmax"} for one cell. Days with missing values are
     skipped here and reported by the caller if a season needs them."""
     s = cell["series"]
     start = date(int(cell["start"][:4]), int(cell["start"][4:6]), int(cell["start"][6:]))
@@ -100,7 +100,7 @@ def to_daily(cell):
             row["T2M_MAX"], row["T2M_MIN"], row["RH2M"], row["WS2M"], row["ALLSKY_SFC_SW_DWN"],
             cell["lat"], cell["elevation"], d.timetuple().tm_yday,
         )
-        out[d] = {"rain": max(row["PRECTOTCORR"], 0.0), "et0": et0}
+        out[d] = {"rain": max(row["PRECTOTCORR"], 0.0), "et0": et0, "tmax": row["T2M_MAX"]}
     return out
 
 
@@ -114,6 +114,7 @@ def average_daily(dailies):
         d: {
             "rain": sum(x[d]["rain"] for x in dailies) / n,
             "et0": sum(x[d]["et0"] for x in dailies) / n,
+            "tmax": sum(x[d]["tmax"] for x in dailies) / n,
         }
         for d in common
     }

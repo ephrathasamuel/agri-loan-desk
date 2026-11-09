@@ -49,6 +49,16 @@ RISK = {
     "dry_season_share_of_median": 0.75,
     # A yield loss at or above this share counts as a bad season.
     "bad_loss_threshold": 0.20,
+    # Seasons in the "recent" part of the trend comparison.
+    "recent_years": 15,
+}
+
+HEAT = {
+    # Days from the start of mid-season counted as the flowering window.
+    "flowering_days": 20,
+    # Share of yield lost per degree-day of daily maximum above the crop's
+    # critical temperature in that window. Assumption.
+    "loss_per_degree_day": 0.01,
 }
 
 INSURANCE = {
@@ -71,5 +81,6 @@ def as_dict():
         "price_etb_per_quintal": PRICE_ETB_PER_QUINTAL,
         "lending": LENDING,
         "risk": RISK,
+        "heat": HEAT,
         "insurance": INSURANCE,
     }

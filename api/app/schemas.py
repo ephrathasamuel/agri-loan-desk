@@ -121,10 +121,31 @@ class Season(BaseModel):
     etm_mm: float
     eta_mm: float
     stress_days: int
+    # Absent from assessments saved before heat stress was modelled.
+    heat_days: int = 0
+    water_yield_loss: float | None = None
+    heat_yield_loss: float = 0.0
     relative_yield: float
     yield_loss: float
     dry: bool
     rain_share_of_median: float | None
+
+
+class Trend(BaseModel):
+    per_decade: float
+    p_value: float
+    significant: bool
+
+
+class ClimateTrend(BaseModel):
+    rain_mm: Trend
+    yield_loss: Trend
+    recent_from_year: int
+    recent_bad_season_share: float | None
+    earlier_bad_season_share: float | None
+    recent_mean_rain_mm: float | None
+    earlier_mean_rain_mm: float | None
+    significance_level: float
 
 
 class ClimateRisk(BaseModel):
@@ -144,6 +165,10 @@ class ClimateRisk(BaseModel):
     bad_season_share: float
     bad_loss_threshold: float
     risk_rating: Literal["Low", "Medium", "High"]
+    # Absent from assessments saved before heat stress and trends were added.
+    heat_seasons: int | None = None
+    mean_heat_yield_loss: float | None = None
+    trend: ClimateTrend | None = None
     seasons: list[Season]
 
 
@@ -203,6 +228,7 @@ class CropInfo(BaseModel):
     name: str
     season_days: int
     ky: float
+    heat_tmax_c: float | None = None
     notes: list[str]
 
 

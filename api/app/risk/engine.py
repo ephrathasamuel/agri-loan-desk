@@ -6,6 +6,7 @@ from . import assumptions as A
 from .crops import CROPS, SOILS, season_length
 from .insurance import design_policy, percentile
 from .season import SPIN_UP_DAYS, simulate_season
+from .trend import climate_trend
 
 MIN_YEARS = 20
 
@@ -134,6 +135,7 @@ def assess(inputs, daily, today=None):
         s["rain_share_of_median"] = round(s["season_rain_mm"] / median_rain, 3) if median_rain else None
     p_bad = sum(1 for s in seasons if s["yield_loss"] >= bad_loss) / len(seasons)
     dry = [s for s in seasons if s["dry"]]
+    hot = [s for s in seasons if s["heat_yield_loss"] > 0]
 
     climate = {
         "years": len(seasons),
@@ -150,6 +152,9 @@ def assess(inputs, daily, today=None):
         "bad_season_share": round(p_bad, 4),
         "bad_loss_threshold": bad_loss,
         "risk_rating": risk_rating(p_bad),
+        "heat_seasons": len(hot),
+        "mean_heat_yield_loss": round(sum(s["heat_yield_loss"] for s in seasons) / len(seasons), 4),
+        "trend": climate_trend(seasons, bad_loss, A.RISK["recent_years"]),
         "seasons": seasons,
     }
 
@@ -180,11 +185,14 @@ def assess(inputs, daily, today=None):
         "grace_days_after_harvest": A.LENDING["grace_days_after_harvest"],
         "insurance_loading": ins["loading"],
         "dry_season_share_of_median": A.RISK["dry_season_share_of_median"],
+        "heat_tmax_c": crop["heat_tmax_c"],
+        "heat_flowering_days": A.HEAT["flowering_days"],
+        "heat_loss_per_degree_day": A.HEAT["loss_per_degree_day"],
     }
 
     return {
         "crop": {"key": inputs["crop"], "name": crop["name"], "season_days": season_length(crop),
-                 "ky": crop["ky"], "notes": crop["notes"]},
+                 "ky": crop["ky"], "heat_tmax_c": crop["heat_tmax_c"], "notes": crop["notes"]},
         "soil": {"key": inputs["soil"], "name": soil["name"]},
         "climate": climate,
         "loan": loan,

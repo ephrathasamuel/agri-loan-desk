@@ -18,6 +18,9 @@ Where FAO gives a range, the middle of the range is used. Values marked
 # root_max_m: maximum effective rooting depth in metres
 # p: share of total available water the crop can use before it is stressed
 # ky: seasonal yield response factor (relative yield loss per relative ET deficit)
+# heat_tmax_c: daily maximum (deg C) above which heat around flowering harms the
+#   grain. Approximate critical values from the crop heat-stress literature;
+#   not FAO table values.
 CROPS = {
     "wheat": {
         "name": "Wheat",
@@ -26,6 +29,7 @@ CROPS = {
         "root_max_m": 1.25,               # Table 22: 1.0-1.5 m
         "p": 0.55,                        # Table 22
         "ky": 1.15,                       # FAO-33 Table 24, spring wheat
+        "heat_tmax_c": 34,
         "notes": [],
     },
     "teff": {
@@ -35,6 +39,7 @@ CROPS = {
         "root_max_m": 0.60,
         "p": 0.55,
         "ky": 1.0,
+        "heat_tmax_c": 35,
         "notes": ["Teff is not in the FAO-56 or FAO-33 tables. Small-grain values are used as an "
                   "approximation, with a shorter season and shallower roots, and Ky = 1.0 is assumed."],
     },
@@ -45,6 +50,7 @@ CROPS = {
         "root_max_m": 1.35,               # Table 22: 1.0-1.7 m
         "p": 0.55,                        # Table 22
         "ky": 1.25,                       # FAO-33 Table 24, maize
+        "heat_tmax_c": 35,
         "notes": [],
     },
     "sorghum": {
@@ -54,6 +60,7 @@ CROPS = {
         "root_max_m": 1.50,               # Table 22: 1.0-2.0 m
         "p": 0.55,                        # Table 22
         "ky": 0.90,                       # FAO-33 Table 24, sorghum
+        "heat_tmax_c": 38,
         "notes": [],
     },
     "barley": {
@@ -63,6 +70,7 @@ CROPS = {
         "root_max_m": 1.25,               # Table 22: 1.0-1.5 m
         "p": 0.55,                        # Table 22
         "ky": 1.0,
+        "heat_tmax_c": 34,
         "notes": ["Barley has no seasonal Ky in FAO-33 Table 24; Ky = 1.0 is assumed."],
     },
 }

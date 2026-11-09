@@ -78,10 +78,11 @@ def test_power_failures_raise_climate_error(session):
 
 
 def test_average_daily_uses_common_days():
-    a = {date(2020, 1, 1): {"rain": 2.0, "et0": 4.0}, date(2020, 1, 2): {"rain": 0.0, "et0": 4.0}}
-    b = {date(2020, 1, 1): {"rain": 6.0, "et0": 2.0}}
+    a = {date(2020, 1, 1): {"rain": 2.0, "et0": 4.0, "tmax": 30.0},
+         date(2020, 1, 2): {"rain": 0.0, "et0": 4.0, "tmax": 30.0}}
+    b = {date(2020, 1, 1): {"rain": 6.0, "et0": 2.0, "tmax": 26.0}}
     avg = climate.average_daily([a, b])
-    assert avg == {date(2020, 1, 1): {"rain": 4.0, "et0": 3.0}}
+    assert avg == {date(2020, 1, 1): {"rain": 4.0, "et0": 3.0, "tmax": 28.0}}
 
 
 def test_history_end_is_last_complete_year():

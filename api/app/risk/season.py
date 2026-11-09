@@ -5,10 +5,15 @@ with no irrigation. When the soil dries past the readily available water the
 crop is stressed (Ks < 1, eq. 84) and transpires less than it could. The
 seasonal shortfall of actual against potential crop water use gives the
 relative yield loss (FAO-33):  1 - Ya/Ym = Ky (1 - ETa/ETm).
+
+Heat is applied on top: each degree-day of daily maximum above the crop's
+critical temperature in the flowering window (the start of mid-season) takes
+a fixed share off the water-limited yield.
 """
 
 from datetime import timedelta
 
+from .assumptions import HEAT
 from .crops import ROOT_INITIAL_M, season_length
 
 MIN_EFFECTIVE_RAIN_MM = 2.0
@@ -59,10 +64,17 @@ def index_window_days(crop):
     return l_ini + l_dev + l_mid
 
 
+def flowering_window(crop):
+    """(first, last + 1) day after planting of the flowering window."""
+    l_ini, l_dev, l_mid, _ = crop["stages"]
+    start = l_ini + l_dev
+    return start, start + min(HEAT["flowering_days"], l_mid)
+
+
 def simulate_season(daily, crop, taw_per_m, planting):
     """Simulate one rain-fed season.
 
-    daily: dict date -> {"rain": mm, "et0": mm}; must cover the spin-up days
+    daily: dict date -> {"rain": mm, "et0": mm, "tmax": deg C (optional)}; must cover the spin-up days
     before planting and the whole season.
     Returns season totals and the relative yield (0-1).
     """
@@ -76,8 +88,9 @@ def simulate_season(daily, crop, taw_per_m, planting):
 
     length = season_length(crop)
     window = index_window_days(crop)
-    eta = etm = rain = index_rain = 0.0
-    stress_days = 0
+    flower_start, flower_end = flowering_window(crop)
+    eta = etm = rain = index_rain = heat_degree_days = 0.0
+    stress_days = heat_days = 0
     for das in range(length):
         d = daily[planting + timedelta(days=das)]
         _, kc, root = crop_stage(crop, das)
@@ -94,15 +107,24 @@ def simulate_season(daily, crop, taw_per_m, planting):
             index_rain += d["rain"]
         if ks < 1.0:
             stress_days += 1
+        excess = (d.get("tmax") or 0.0) - crop["heat_tmax_c"]
+        if flower_start <= das < flower_end and excess > 0:
+            heat_days += 1
+            heat_degree_days += excess
 
     deficit = 1 - eta / etm if etm > 0 else 0.0
-    relative_yield = max(0.0, 1 - crop["ky"] * deficit)
+    water_yield = max(0.0, 1 - crop["ky"] * deficit)
+    heat_loss = min(1.0, HEAT["loss_per_degree_day"] * heat_degree_days)
+    relative_yield = water_yield * (1 - heat_loss)
     return {
         "season_rain_mm": round(rain, 1),
         "index_rain_mm": round(index_rain, 1),
         "etm_mm": round(etm, 1),
         "eta_mm": round(eta, 1),
         "stress_days": stress_days,
+        "heat_days": heat_days,
+        "water_yield_loss": round(1 - water_yield, 4),
+        "heat_yield_loss": round(heat_loss, 4),
         "relative_yield": round(relative_yield, 4),
         "yield_loss": round(1 - relative_yield, 4),
     }
