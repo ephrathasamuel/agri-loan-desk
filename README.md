@@ -62,7 +62,7 @@ The weather data (ERA5 through Open-Meteo, and NASA POWER) is free and needs no 
 - **Field and data:** the field on satellite imagery, plus the weather grid cells its history came from.
 - **Headline numbers:** share of bad seasons, maximum loan in a 1-in-5 bad year against the amount requested, drought cover premium, repayment date.
 - **Loan structure:** a timeline (loan paid out, planting, expected harvest, repayment due), interest, harvest value in a bad and a median year, and a verdict: *Within capacity*, *Repayable in a normal year only* or *Above capacity*.
-- **Climate risk:** charts of season rainfall and estimated yield loss for every season since 1984, with dry seasons and bad seasons marked.
+- **Climate risk:** charts of season rainfall and estimated yield loss (water and heat) for every season since 1984, with dry seasons and bad seasons marked, plus a trend check: is rainfall or yield loss changing, and are recent seasons worse than earlier ones?
 - **Drought insurance:** trigger and exit in mm, premium, maximum payout per hectare, a back-test chart, and a **basis risk** panel. It lists bad seasons the index would not have paid for, and payouts in years with little loss.
 - **AI briefing note:** Claude explains the case in English or Amharic. It is told not to approve or reject the loan, and to separate measured history from assumptions.
 - **Assumptions used:** every assumption behind the money figures, labelled as an assumption or as an officer override.
@@ -85,8 +85,11 @@ The engine is in [`api/app/risk/`](api/app/risk). Every agronomic value carries 
 - A daily root-zone **water balance** (FAO-56 eq. 85) with effective rain. The crop is stressed (Ks < 1, eq. 84) once it has used its readily available water.
 - 30 days of bare-soil spin-up before planting, so each year starts from that year's rains.
 - **Yield loss from water stress** uses the FAO-33 yield response: `1 − Ya/Ym = Ky × (1 − ETa/ETm)`.
+- **Heat around flowering.** In the first 20 days of mid-season, every degree-day of daily maximum temperature above the crop's critical value (wheat and barley 34 °C, teff and maize 35 °C, sorghum 38 °C) takes 1% off the water-limited yield.
 
 **4. Risk summary.** A *dry season* has rainfall below 75% of the median. A *bad season* loses at least 20% of its yield. The climate risk rating is Low (under 10% bad seasons), Medium (under 25%) or High.
+
+**Trend check** ([`trend.py`](api/app/risk/trend.py)). The Theil–Sen slope of season rainfall and of yield loss (per decade), tested with Mann–Kendall at the 10% level, and the share of bad seasons in the last 15 seasons against the ones before. It is shown next to the risk figures as a warning; it does not change them.
 
 **5. Loan structure** ([`engine.py`](api/app/risk/engine.py)):
 - **Dates.** The loan is paid out 14 days before the next planting date and falls due 30 days after the expected harvest. Harvest is planting plus the FAO-56 season length.
@@ -114,6 +117,7 @@ All money assumptions sit in one file, [`api/app/risk/assumptions.py`](api/app/r
 | Interest rate | 18% a year, flat | |
 | Disbursement / grace | 14 days before planting / 30 days after harvest | |
 | Insurance loading | 25% | |
+| Heat loss | 1% of yield per degree-day above the critical temperature, first 20 days of mid-season | Critical temperatures are approximate values from heat-stress studies, not FAO tables |
 
 Teff and barley have no seasonal Ky in FAO-33, so Ky = 1.0 is assumed. Teff uses small-grain FAO-56 values. Both are shown as notes in the app.
 
@@ -194,6 +198,6 @@ The browser never calls the API: Next.js server code calls it with `API_URL`, so
 
 - **No repayment data.** The desk estimates *climate* risk from weather and an agronomic model. It does not know the farmer's credit history, other income or management, and the money figures depend on the assumptions above. It supports an officer's judgement; it does not replace a credit model.
 - **Rainfall is still a grid average.** Rainfall now comes from ERA5 (about 28 km, five times finer in area than the NASA POWER grid used before), but it is still a reanalysis average. CHIRPS (about 5 km) or local station records would sharpen field-level risk further.
-- **Simplified agronomy.** A single-layer bucket model with fixed soil and crop values, no fertility, pests or late-season heat stress, and an assumed soil state before planting. Teff and barley Ky values are assumptions.
+- **Simplified agronomy.** A single-layer bucket model with fixed soil and crop values, no fertility or pests, and an assumed soil state before planting. Heat stress is a simple degree-day rule around flowering, driven by NASA POWER temperature on a coarse (about 55 km) grid, so it can miss hot spells in lowland fields. Teff and barley Ky values and all heat thresholds are assumptions.
 - **Insurance design is illustrative.** Linear payout on one cumulative rainfall index, priced on burning cost. A real product would use dekadal (10-day) phases, a reinsurer's loading and regulatory approval.
-- **Future seasons are assumed to look like the past 42.** No climate-change trend is applied.
+- **Trends are flagged, not projected.** The desk tests whether rainfall and yield loss are trending and compares recent seasons with earlier ones, but the risk rating, loan capacity and premium still weigh all 42 seasons equally. Forty-two seasons is a short record for spotting a trend, and no climate projection is used.
