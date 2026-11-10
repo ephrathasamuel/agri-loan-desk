@@ -60,7 +60,7 @@ The weather data (ERA5 through Open-Meteo, and NASA POWER) is free and needs no 
 ## What the officer sees
 
 - **Field and data:** the field on satellite imagery, plus the weather grid cells its history came from.
-- **Headline numbers:** share of bad seasons, maximum loan in a 1-in-5 bad year against the amount requested, drought cover premium, repayment date.
+- **Headline numbers:** share of bad seasons, maximum loan in a 1 in 5 bad year against the amount requested, drought cover premium, repayment date.
 - **Loan structure:** a timeline (loan paid out, planting, expected harvest, repayment due), interest, harvest value in a bad and a median year, and a verdict: *Within capacity*, *Repayable in a normal year only* or *Above capacity*.
 - **Climate risk:** charts of season rainfall and estimated yield loss (water and heat) for every season since 1984, with dry seasons and bad seasons marked, plus a trend check: is rainfall or yield loss changing, and are recent seasons worse than earlier ones?
 - **Drought insurance:** trigger and exit in mm, premium, maximum payout per hectare, a back-test chart, and a **basis risk** panel. It lists bad seasons the index would not have paid for, and payouts in years with little loss.
