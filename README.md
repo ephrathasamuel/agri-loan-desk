@@ -93,7 +93,7 @@ The engine is in [`api/app/risk/`](api/app/risk). Every agronomic value carries 
 
 **5. Loan structure** ([`engine.py`](api/app/risk/engine.py)):
 - **Dates.** The loan is paid out 14 days before the next planting date and falls due 30 days after the expected harvest. Harvest is planting plus the FAO-56 season length.
-- **Harvest value in a bad year.** Area × typical yield × the 20th-percentile relative yield from the history × price.
+- **Harvest value in a bad year.** Area × typical yield × the 20th percentile relative yield from the history × price.
 - **Maximum loan.** The share of the harvest value set aside for repayment, divided by (1 + interest for the loan's term).
 
 **6. Weather-index insurance** ([`insurance.py`](api/app/risk/insurance.py)):
